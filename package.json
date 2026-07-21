@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:gate1": "tsx tests/gate1.ts"
+    "test:gate1": "tsx tests/gate1.ts",
+    "test:gate2": "tsx tests/gate2.ts",
+    "test": "tsx tests/gate1.ts && tsx tests/gate2.ts"
   },
   "keywords": [],
   "author": "",

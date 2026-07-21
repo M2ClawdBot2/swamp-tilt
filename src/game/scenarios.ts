@@ -101,6 +101,27 @@ export const strikeScenario: Scenario = {
   ],
 }
 
+/**
+ * Gate 2 traversal: L1 ramp shot → The Reitz, roll to the fall shaft → back
+ * on the Plaza; then the steep L2 ramp → The Bench, roll off the open edge →
+ * lands on The Reitz → fall shaft → Plaza. Every transition is physical.
+ */
+export const traversalScenario: Scenario = {
+  name: 'traversal',
+  label: 'Multilevel: Plaza → Reitz → Bench → falls home',
+  duration: 24,
+  events: [
+    { t: 0.3, run: (c) => place(c.ball, 12, BALL_RADIUS, 16, 0, 0, -560) },
+    // ball is on L2 by ~2 s, rolls down, falls the shaft back to L1 by ~8 s
+    // starts on FLAT Reitz floor before the ramp's mouth (z0=2) — placing it
+    // past the mouth, at the ramp's already-climbed height, embeds it in
+    // solid incline geometry and produces chaotic contact resolution
+    // (Gate 2 finding, isolated via an isolated-box empirical fall test)
+    { t: 10.0, run: (c) => place(c.ball, -11, 41.35, 8, 0, 0, -620) },
+    // L3 by ~12 s, rolls off the Bench edge → Reitz → shaft → Plaza
+  ],
+}
+
 export const gate1Scenarios: Scenario[] = [
   cradleScenario,
   postPassScenario,

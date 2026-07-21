@@ -11,26 +11,62 @@ Status legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[!]` blocked
 ## Phase 0 — Repo + deploy rail (tonight, first)
 - [x] Gate 1 physics feel: CCD, 240 Hz, cradle, post-pass, orbit, both-held,
       0–1 frame latency, cabinet buttons (see Gate 1 report)
-- [ ] git init, initial commit, GitHub repo, push
-- [ ] Base path `/games/pinball/`
-- [ ] GitHub Pages staging deploy (`deploy:pages` script) so every phase ends
-      with a clickable build
-- [ ] `vercel.json` ready for the real ufcr.online deploy (Sam connects domain)
+- [x] git init, initial commit, GitHub repo (M2ClawdBot2/swamp-tilt), push
+- [x] Base path `/games/pinball/`
+- [x] GitHub Pages staging deploy (`.github/workflows/pages.yml`) — live at
+      https://m2clawdbot2.github.io/swamp-tilt/games/pinball/
+- [x] `vercel.json` ready for the real ufcr.online deploy (Sam connects domain)
 
 ## Phase 1 — Multilevel traversal (Gate 2)
 One continuous physics world, three Y-strata. Ball transitions are physical.
-- [ ] L2 (The Reitz, y=+40) authored colliders: narrow field, floor with
-      fall-through gaps instead of outlanes, its own flipper pair
-- [ ] L3 (The Bench, y=+80) authored colliders: tightest field, ONE flipper
-- [ ] Right ramp L1→L2: authored extruded/segmented ramp + habitrail, ball
-      carries velocity up it
-- [ ] Center ramp L2→L3
-- [ ] Falling: L2 gap drops ball physically back to L1; L3 misses fall to L2
-- [ ] Camera: per-level framing, 400 ms eased dolly on level change, deadzone
-      ball-follow with heavy damping (never hard-locked)
-- [ ] Flipper input routes to the flippers of the ball's current level
-- [ ] Headless proof: scripted ball does L1→L2→L3→fall→L1 with progress log
-- [ ] Video capture of the full traversal
+- [x] L2 (The Reitz, y=+40) authored colliders: narrow field, floor with
+      fall-through gaps instead of outlanes, its own flipper pair (mini-scale)
+- [x] L3 (The Bench, y=+80) authored colliders: tightest field, ONE flipper
+- [x] Right ramp L1→L2: single-incline enclosed tube, ball carries velocity up
+      it (see notes below — a multi-segment smooth profile was tried and
+      abandoned; a single incline proved far more reliable)
+- [x] Center ramp L2→L3 (same single-incline design)
+- [x] Falling: L2 open floor edge drops ball physically back to L1 through an
+      enclosed shaft; L3 misses fall to L2 the same way
+- [x] Camera: per-level framing (CameraRig), 400 ms eased dolly on level
+      change, deadzone ball-follow with heavy damping (never hard-locked)
+- [x] Flipper input routes to the flippers of the ball's current level (both
+      buttons drive every level's flippers simultaneously — real multi-tier
+      machines work this way; Bench's single flipper answers either button)
+- [x] Headless proof: `npm run test:gate2` — full L1→L2→(fall)→L1→L2→L3→
+      (fall)→L2→(fall)→L1 cascade, ALL PASS
+- [x] Video capture of the full traversal (harness/gate2-video.spec.ts)
+
+### Phase 1 hard-won lessons (read before touching ramp/level code again)
+- **Ramps are single straight inclines, not smooth multi-arc/Bézier profiles.**
+  Every extra joint in a multi-segment curve is a chance for the ball to clip
+  a seam and bleed speed to friction/restitution. A single incline has
+  exactly one joint (the entry) and was far more reliable in practice.
+- **Never let two colliders occupy the same space.** Found twice: Reitz's
+  `laneWallX` wall duplicated the L2→L3 ramp's own side wall for its entire
+  length (same x, overlapping z), and a Bench boundary wall sat squarely
+  inside the ramp tube's footprint. A fast ball straddling two coincident
+  colliders gets simultaneous contact resolution from both and kicks
+  sideways almost every physics step, silently eating nearly all its speed.
+  **Always cut a floor hole for a level's own outgoing ramp**, not just for
+  ramps arriving from below — Reitz's floor was solid at x=-11 with no hole
+  for its own L2→L3 ramp, so the ball just rode the flat floor under the
+  incline instead of climbing it.
+  **Never teleport/place a scripted ball onto an already-climbed point of an
+  incline.** Placing it 4 cm past a ramp's mouth (at the mouth's *flat*
+  floor height) embeds it inside solid climbing geometry, since the incline
+  is already elevated there. Scripted shots must start on the flat approach
+  *before* the ramp's mouth, exactly like a real ball rolling in.
+  **Perimeter/back walls must be tall enough to catch a ball still airborne**
+  after a ramp climb — a nominal 6-unit field-wall curb let a ball sail
+  clean over the back boundary into the void (fell for -4000+ units before
+  the fix). `perimeterH: 22` on Reitz and Bench fixed this; the full-height
+  outer shell (`levels/index.ts`) is the last-resort catch, not the primary
+  one.
+- **Debugging trick that finally worked**: `world.contactPairsWith(ballCol, cb)`
+  gives ground truth on what the ball is actually touching, but Rapier
+  collider `.handle` prints as a subnormal float (e.g. `5.1e-322`) — decode
+  the real integer index with `Math.round(handle / Number.MIN_VALUE)`.
 
 ## Phase 2 — Game logic (Gate 4, pulled ahead of asset gen — see note)
 Playable, ugly. All rules real.

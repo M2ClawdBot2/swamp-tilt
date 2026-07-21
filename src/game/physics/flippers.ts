@@ -31,7 +31,12 @@ export class Flipper {
   readonly body: RAPIER.RigidBody
   readonly side: FlipperSide
   readonly pivotX: number
+  readonly pivotY: number
   readonly pivotZ: number
+  /** bat scale: 1 = main flippers, ~0.72 = upper-playfield mini flippers */
+  readonly scale: number
+  readonly halfLen: number
+  readonly radius: number
   readonly restAngle: number
   readonly endAngle: number
   /** ramp progress, 0 = rest, 1 = end */
@@ -39,10 +44,21 @@ export class Flipper {
   /** current commanded angle (radians about +y) */
   angle: number
 
-  constructor(world: RAPIER.World, side: FlipperSide, pivotX: number, pivotZ: number) {
+  constructor(
+    world: RAPIER.World,
+    side: FlipperSide,
+    pivotX: number,
+    pivotZ: number,
+    pivotY: number = FLIPPER.y,
+    scale = 1,
+  ) {
     this.side = side
     this.pivotX = pivotX
+    this.pivotY = pivotY
     this.pivotZ = pivotZ
+    this.scale = scale
+    this.halfLen = FLIPPER.halfLen * scale
+    this.radius = FLIPPER.radius * scale
     // Rotation about +y maps +x → (cos a, 0, -sin a). Left bat points +x,
     // right bat points -x; signs chosen so rest = tip down-field (+z),
     // end = tip up-field (-z).
@@ -56,10 +72,10 @@ export class Flipper {
     this.angle = this.restAngle
 
     this.body = world.createRigidBody(
-      R.RigidBodyDesc.kinematicPositionBased().setTranslation(pivotX, FLIPPER.y, pivotZ),
+      R.RigidBodyDesc.kinematicPositionBased().setTranslation(pivotX, pivotY, pivotZ),
     )
-    const alongX = side === 'left' ? FLIPPER.halfLen : -FLIPPER.halfLen
-    const col = R.ColliderDesc.capsule(FLIPPER.halfLen, FLIPPER.radius)
+    const alongX = side === 'left' ? this.halfLen : -this.halfLen
+    const col = R.ColliderDesc.capsule(this.halfLen, this.radius)
       // capsule axis is local +y; rotate 90° about z to lay it along local x
       .setRotation({ x: 0, y: 0, z: Math.SQRT1_2, w: Math.SQRT1_2 })
       .setTranslation(alongX, 0, 0)

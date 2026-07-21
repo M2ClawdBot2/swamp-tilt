@@ -3,7 +3,7 @@
  * runs, stepped at the same fixed 240 Hz. `npm run test:gate1`.
  */
 import { initRapier, createWorld } from '../src/game/physics/world'
-import { buildGate1Table } from '../src/game/physics/colliders'
+import { buildAllLevels } from '../src/game/levels'
 import { Flipper } from '../src/game/physics/flippers'
 import { createBall, resetBall } from '../src/game/physics/ball'
 import { BALL_RADIUS, DT } from '../src/game/scale'
@@ -32,7 +32,7 @@ interface Rig {
 
 function makeRig(): Rig {
   const world = createWorld()
-  buildGate1Table(world)
+  buildAllLevels(world)
   const left = new Flipper(world, 'left', -11, 36)
   const right = new Flipper(world, 'right', 11, 36)
   const ball = createBall(world, 0, BALL_RADIUS, 20)
@@ -84,8 +84,13 @@ function speedOf(rig: Rig): number {
   return Math.hypot(v.x, v.y, v.z)
 }
 
+/**
+ * World-box containment. Since Gate 2 the upper strata are open-topped, so a
+ * ball at extreme speed may legally arc above L1's lid via the ramp tubes —
+ * "escaped" means outside the whole machine, which only tunneling allows.
+ */
 function inBounds(p: { x: number; y: number; z: number }): boolean {
-  return Math.abs(p.x) <= 26.6 && p.z >= -51.6 && p.z <= 45.2 && p.y >= 0.8 && p.y <= 3.8
+  return Math.abs(p.x) <= 30 && p.z >= -55 && p.z <= 48 && p.y >= 0.5 && p.y <= 120
 }
 
 let failures = 0
