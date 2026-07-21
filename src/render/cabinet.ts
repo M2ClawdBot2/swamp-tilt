@@ -8,17 +8,22 @@ import * as THREE from 'three'
  */
 export interface CabinetButtons {
   update(leftPressed: boolean, rightPressed: boolean, dt: number): void
+  /** "Show cabinet" option: hides the rails only — the buttons stay visible,
+   * per §8, since on mobile they double as the touch targets. */
+  setRailsVisible(visible: boolean): void
 }
 
 const TRAVEL = 1.1 // cm of button travel when pressed
 
 export function buildCabinet(scene: THREE.Scene): CabinetButtons {
+  const rails = new THREE.Group()
+  scene.add(rails)
   const railMat = new THREE.MeshStandardMaterial({ color: 0x1c1f22, roughness: 0.4, metalness: 0.6 })
   for (const sx of [-1, 1]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 100), railMat)
     rail.position.set(sx * 29.8, 1.4, -4)
     rail.receiveShadow = true
-    scene.add(rail)
+    rails.add(rail)
   }
 
   const btnMat = new THREE.MeshStandardMaterial({ color: 0xd93025, roughness: 0.35 })
@@ -58,6 +63,9 @@ export function buildCabinet(scene: THREE.Scene): CabinetButtons {
         rightRest - (rightPressed ? TRAVEL : 0),
         rightPressed ? 60 : 25,
       )
+    },
+    setRailsVisible(visible: boolean): void {
+      rails.visible = visible
     },
   }
 }

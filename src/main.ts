@@ -1,4 +1,6 @@
 import * as THREE from 'three'
+import { createRoot } from 'react-dom/client'
+import { createElement } from 'react'
 import { initRapier, createWorld } from './game/physics/world'
 import { buildAllLevels, PLAZA, REITZ, BENCH, levelOfY } from './game/levels'
 import { Flipper } from './game/physics/flippers'
@@ -16,10 +18,16 @@ import { createRenderer, createScene, buildTableMeshes, buildBallMesh, buildFlip
 import { CameraRig } from './render/camera'
 import { buildCabinet } from './render/cabinet'
 import { buildPropPlaceholder } from './render/loadProps'
-import { GameLogic } from './game/gameLogic'
+import { GameLogic, type GameEvent } from './game/gameLogic'
 import { BallPool } from './game/multiball'
 import { useGameStore } from './game/state'
+import { settingsStore } from './game/settings'
 import { registerNudge, nudgeImpulse, resetTilt } from './game/tilt'
+import { play, bindUnlockOnFirstGesture, setVolume, setMuted } from './audio/bank'
+import { fireCallout } from './audio/callouts'
+import { installBridge } from './ui/bridge'
+import { App } from './ui/App'
+import './ui/styles.css'
 
 await initRapier()
 
@@ -138,11 +146,104 @@ if (params.get('demo') === 'gate2') demoQueue = [traversalScenario]
 if (params.get('demo') === 'all') demoQueue = [...demoScenarios]
 if (params.get('demo') === 'game') startRealGame()
 
+// ---- UI bridge, audio, attract mode ----
+const SFX_BY_EVENT: Record<GameEvent, Parameters<typeof play>[0]> = {
+  flip: 'flip',
+  target: 'target',
+  spinner: 'spinner',
+  bumper: 'bumper',
+  launch: 'launch',
+  jackpot: 'jackpot',
+  multiball: 'multiball',
+  drain: 'drain',
+  tilt: 'tilt',
+  gavel: 'gavel',
+  wizardStart: 'wizardStart',
+}
+logic.onEvent((e) => {
+  play(SFX_BY_EVENT[e])
+  const gs = useGameStore.getState()
+  if (e === 'multiball') fireCallout(gs.recruitActive ? 'recruitStart' : 'charterStart')
+  if (e === 'drain') fireCallout('drain')
+  if (e === 'tilt') fireCallout('tilt')
+  if (e === 'wizardStart') fireCallout('wizardStart')
+  if (e === 'gavel') fireCallout('gavelHit')
+})
+useGameStore.subscribe((s, prev) => {
+  if (s.screen === 'gameOver' && prev.screen !== 'gameOver') fireCallout('gameOver')
+  if (s.tiltWarnings > prev.tiltWarnings && s.tiltWarnings < 3) fireCallout('tiltWarning')
+})
+
+bindUnlockOnFirstGesture()
+setVolume(settingsStore.getState().audioVolume)
+setMuted(settingsStore.getState().audioMuted)
+settingsStore.subscribe((s) => {
+  setVolume(s.audioVolume)
+  setMuted(s.audioMuted)
+})
+
+function applyCameraSettings(): void {
+  const s = settingsStore.getState()
+  rig.animateDolly = !s.reducedMotion
+  rig.followGainMultiplier = s.followStrength * 2
+  cabinet.setRailsVisible(s.showCabinet)
+}
+applyCameraSettings()
+settingsStore.subscribe(applyCameraSettings)
+
+function doLaunch(power: number): void {
+  if (!playingRealGame) return
+  const primary = logic.pool.primary()
+  if (!primary) return
+  const v = primary.body.linvel()
+  if (Math.hypot(v.x, v.y, v.z) > 40) return
+  logic.relaunchPrimary(-350 - power * 350)
+  play('launch')
+  fireCallout('ballLaunch')
+}
+
+installBridge({
+  startGame: startRealGame,
+  resumeGame: () => useGameStore.setState({ screen: 'play' }),
+  pauseGame: () => useGameStore.setState({ screen: 'paused' }),
+  quitToMenu: () => {
+    playingRealGame = false
+    useGameStore.setState({ screen: 'menu' })
+  },
+})
+
+const uiRoot = createRoot(document.getElementById('ui-root')!)
+uiRoot.render(createElement(App, { onLaunch: doLaunch }))
+
+// Attract mode: 20s idle on the menu screen cycles to attract (§7).
+let idleTimer = 0
+const IDLE_TO_ATTRACT = 20
+window.addEventListener('pointerdown', () => (idleTimer = 0))
+window.addEventListener('keydown', () => (idleTimer = 0))
+
 // ---- physics step ----
 let drainedAt: number | null = null
 
 function step(dt: number): void {
   drainProbes(stats.frame)
+
+  const screen = useGameStore.getState().screen
+  if (screen === 'menu') {
+    idleTimer += dt
+    if (idleTimer >= IDLE_TO_ATTRACT) {
+      idleTimer = 0
+      useGameStore.setState({ screen: 'attract' })
+    }
+  } else {
+    idleTimer = 0
+  }
+
+  if (playingRealGame) {
+    const primaryNow = logic.pool.primary()
+    if (primaryNow) useGameStore.setState({ liveLevel: levelOfY(primaryNow.body.translation().y) })
+  }
+
+  if (screen === 'paused') return // freeze the whole simulation; only rendering continues
 
   if (!playingRealGame) {
     if (!activeScenario && demoQueue.length > 0 && physicsTime >= demoGapUntil) {
@@ -251,8 +352,15 @@ const stats = startLoop(step, (s) => {
 
 bindKeyboard(() => stats.frame)
 window.addEventListener('keydown', (e) => {
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+    if (!e.repeat && !input.left && !input.right) play('flip')
+  }
   if (e.repeat) return
   if (e.code === 'KeyN') startRealGame()
+  if (playingRealGame && (e.code === 'Escape' || e.code === 'KeyP')) {
+    const screen = useGameStore.getState().screen
+    useGameStore.setState({ screen: screen === 'paused' ? 'play' : 'paused' })
+  }
   if (!playingRealGame) {
     if (e.code === 'KeyR') resetBall(scenarioCtx.ball, 0, BALL_RADIUS, 20)
     const idx = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(e.code)
@@ -267,12 +375,6 @@ window.addEventListener('keydown', (e) => {
       }
       registerNudge(physicsTime)
     }
-    if (e.code === 'Space') {
-      const primary = logic.pool.primary()
-      if (primary) {
-        const v = primary.body.linvel()
-        if (Math.hypot(v.x, v.y, v.z) < 40) logic.relaunchPrimary(-550)
-      }
-    }
+    if (e.code === 'Space') doLaunch(1)
   }
 })

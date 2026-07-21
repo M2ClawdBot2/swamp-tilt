@@ -34,6 +34,8 @@ export class CameraRig {
   private followX = 0
   /** set false (reduced motion) to make dollies instant */
   animateDolly = true
+  /** Options → follow strength slider, 0-1; multiplies the base follow gain. */
+  followGainMultiplier = 1
 
   constructor() {
     this.camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 1, 600)
@@ -57,7 +59,7 @@ export class CameraRig {
 
     // ball-follow: only past the deadzone, heavily damped
     const excess = Math.abs(ballPos.x) > FOLLOW_DEADZONE ? ballPos.x : 0
-    const targetFollow = excess * FOLLOW_GAIN
+    const targetFollow = excess * FOLLOW_GAIN * this.followGainMultiplier
     this.followX += (targetFollow - this.followX) * Math.min(1, FOLLOW_DAMP * dt)
 
     const pos = this.from.pos.clone().lerp(this.to.pos, s)

@@ -8,7 +8,17 @@
  */
 import { createStore } from 'zustand/vanilla'
 
-export type Screen = 'attract' | 'menu' | 'options' | 'highScores' | 'play' | 'ballEnd' | 'gameOver'
+export type Screen =
+  | 'attract'
+  | 'menu'
+  | 'options'
+  | 'highScores'
+  | 'credits'
+  | 'howToPlay'
+  | 'play'
+  | 'paused'
+  | 'ballEnd'
+  | 'gameOver'
 
 export interface ModeTimer {
   name: string
@@ -52,6 +62,9 @@ export interface GameState {
 
   activeModeName: string | null
   modeTimers: ModeTimer[]
+
+  /** Written every render frame by main.ts (levelOfY of the primary ball) — HUD-only, not rules state. */
+  liveLevel: 1 | 2 | 3
 
   log: string[]
 }
@@ -117,6 +130,7 @@ export const useGameStore = createStore<GameState & GameActions>((set, get) => (
   ballsInPlay: 0,
   totalBalls: 3,
   ...initialTransient(),
+  liveLevel: 1,
   log: [],
 
   reset() {

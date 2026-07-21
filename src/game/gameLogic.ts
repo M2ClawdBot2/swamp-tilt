@@ -33,15 +33,44 @@ const BUDGET_LETTERS = ['B', 'U', 'D', 'G', 'E', 'T']
 
 const ORBIT_DECAY_PER_SEC = 0.5
 
+/**
+ * Fired for anything the UI/audio layer might want to react to. Deliberately
+ * NOT wired to Howler/callouts directly in this file — gameLogic.ts is
+ * imported by the headless Gate 4 proof under plain Node/tsx, and importing
+ * a browser audio library there is a risk this module shouldn't carry.
+ * main.ts subscribes and drives audio/DMD flavor text from these instead.
+ */
+export type GameEvent =
+  | 'flip'
+  | 'target'
+  | 'spinner'
+  | 'bumper'
+  | 'launch'
+  | 'jackpot'
+  | 'multiball'
+  | 'drain'
+  | 'tilt'
+  | 'gavel'
+  | 'wizardStart'
+
 export class GameLogic {
   readonly pool: BallPool
   private tracker = new ZoneTracker(ZONES)
   private lastLevelById = new Map<number, 1 | 2 | 3>()
   private orbitSpinTimer = 0
   private bumperTimerAccum = 0
+  private eventSink: ((e: GameEvent) => void) | null = null
 
   constructor(pool: BallPool) {
     this.pool = pool
+  }
+
+  onEvent(fn: (e: GameEvent) => void): void {
+    this.eventSink = fn
+  }
+
+  private emit(e: GameEvent): void {
+    this.eventSink?.(e)
   }
 
   startNewGame(): void {
@@ -123,6 +152,7 @@ export class GameLogic {
         letters[tableIdx] = true
         useGameStore.setState({ tableLetters: letters })
         s.addScore(5_000, `TABLE: ${TABLE_LETTERS[tableIdx]}`)
+        this.emit('target')
         Recruit.lightRecruit()
       }
       return
@@ -134,6 +164,7 @@ export class GameLogic {
         letters[budgetIdx] = true
         useGameStore.setState({ budgetLetters: letters, fundingLit: letters.every(Boolean) })
         s.addScore(6_000, `BUDGET: ${BUDGET_LETTERS[budgetIdx]}`)
+        this.emit('target')
       }
       return
     }
@@ -143,36 +174,44 @@ export class GameLogic {
         const spins = s.orbitSpinCount + 1
         useGameStore.setState({ orbitSpinCount: spins })
         s.addScore(1_000 * Math.min(spins, 10), 'Flyer spinner')
+        this.emit('spinner')
         break
       }
       case 'rightOrbit': {
         if (s.recruitLit) {
           Recruit.startRecruit(this.pool)
+          this.emit('multiball')
           break
         }
         const streak = s.preacherStreak + 1
         const mult = streak >= 3 ? Math.min(s.preacherMultiplier + 1, 8) : s.preacherMultiplier
         useGameStore.setState({ preacherStreak: streak, preacherMultiplier: mult })
         s.addScore(2_500, `Preacher loop x${streak}`)
+        this.emit('spinner')
         break
       }
-      case 'filingCabinetLock':
+      case 'filingCabinetLock': {
         Charter.registerLock()
-        Charter.startCharter(this.pool)
+        const started = Charter.startCharter(this.pool)
+        this.emit(started ? 'multiball' : 'target')
         break
+      }
       case 'gavelTarget':
         if (!s.gavelHit) {
           useGameStore.setState({ gavelHit: true })
           s.addScore(8_000, 'Gavel')
+          this.emit('gavel')
         } else {
           Wizard.lockUnderGavel()
-          Wizard.startWizard(this.pool)
+          const started = Wizard.startWizard(this.pool)
+          this.emit(started ? 'wizardStart' : 'gavel')
         }
         break
       case 'precedentSpinner': {
         const spins = s.precedentSpins + 1
         useGameStore.setState({ precedentSpins: spins })
         s.addScore(1_500, 'Precedent spinner')
+        this.emit('spinner')
         break
       }
     }
@@ -184,6 +223,7 @@ export class GameLogic {
       const drained = p.z > 41 && p.y < 20 // past the Plaza drain wall, at field height
       if (!drained) continue
 
+      this.emit('drain')
       if (this.pool.liveCount > 1) {
         // multiball: this ball is out, others keep going
         this.pool.remove(pb)
