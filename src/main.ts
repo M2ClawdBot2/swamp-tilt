@@ -14,7 +14,7 @@ import {
   type Scenario,
   type ScenarioCtx,
 } from './game/scenarios'
-import { createRenderer, createScene, buildTableMeshes, buildBallMesh, buildFlipperMesh } from './render/scene'
+import { createRenderer, createScene, buildTableMeshes, buildBallMesh, buildFlipperMesh, buildBackglass } from './render/scene'
 import { CameraRig } from './render/camera'
 import { buildCabinet } from './render/cabinet'
 import { buildPropPlaceholder } from './render/loadProps'
@@ -62,6 +62,7 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight)
 })
 buildTableMeshes(scene, tableDescs)
+buildBackglass(scene)
 const flipperMeshes = allFlippers.map((f) => buildFlipperMesh(scene, f))
 const cabinet = buildCabinet(scene)
 

@@ -41,6 +41,37 @@ export function createScene(): THREE.Scene {
   return scene
 }
 
+/**
+ * The backglass: a real generated illustration (tools/gen-refs → xAI), stood
+ * up vertically at the back of the machine, unlit (MeshBasicMaterial) so it
+ * reads as a backlit cabinet backglass glowing at full brightness. This is
+ * most of the machine's identity — the suited-gator-with-a-gavel art.
+ */
+export function buildBackglass(scene: THREE.Scene): void {
+  const url = `${import.meta.env.BASE_URL}art/backglass.jpg`
+  const tex = new THREE.TextureLoader().load(url)
+  tex.colorSpace = THREE.SRGBColorSpace
+  // 16:9 art; sized to the machine width, tilted back slightly like a real cabinet
+  const w = 64
+  const h = w * (720 / 1280)
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }),
+  )
+  mesh.position.set(2.5, h / 2 + 4, -55)
+  mesh.rotation.x = -0.18 // lean back toward the player, like a backbox
+  scene.add(mesh)
+
+  // a dark backbox slab behind it so the glass doesn't float in the void
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 4, h + 8, 3),
+    new THREE.MeshStandardMaterial({ color: 0x0a0d0b, roughness: 0.8 }),
+  )
+  box.position.set(2.5, h / 2 + 4, -57)
+  box.rotation.x = -0.18
+  scene.add(box)
+}
+
 // Placeholder palette until the Phase 4 token file: plaza green, Reitz
 // institutional blue-grey, Bench brass.
 const FLOOR_COLORS: Record<1 | 2 | 3, number> = { 1: 0x14361f, 2: 0x2e3a46, 3: 0x4a3c1c }
