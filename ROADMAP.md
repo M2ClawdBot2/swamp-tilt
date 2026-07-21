@@ -70,32 +70,73 @@ One continuous physics world, three Y-strata. Ball transitions are physical.
 
 ## Phase 2 — Game logic (Gate 4, pulled ahead of asset gen — see note)
 Playable, ugly. All rules real.
-- [ ] Game state machine: attract → game → ball end → bonus → game over
-- [ ] Scoring core + combo/multiplier plumbing, score events bus
-- [ ] L1: T-A-B-L-E drop target bank (5 standing targets, knock-down + reset
-      coil timing) → lights Recruit
-- [ ] L1: flyer spinner on left orbit (spin count decays), preacher loop
-      right-orbit ×3 stacking multiplier that resets on drain
-- [ ] L1: Recruit Multiball — 3 balls, survive 45 s, add-a-ball scoring
-- [ ] L2: B-U-D-G-E-T targets → funding lit
-- [ ] L2: bureaucracy bumper cluster — pops that eat the mode timer while the
-      ball is inside the cluster (timer ONLY ticks there; prototype, be
-      willing to cut per build-prompt §12)
-- [ ] L2: filing-cabinet ball lock ×3 → Charter Multiball
-- [ ] L2: Denial kickback — missed shot drops to L1 with letters/progress held
-- [ ] L3: gavel drop target, precedent spinner, flat 10× scoring
-- [ ] L3: lock under gavel → SUMMARY JUDGMENT wizard: all fields live, 6 balls
-      (4 on mobile), ends at 1 ball, award = accumulated × levels visited
-- [ ] Tilt: nudge (arrows/shake), warning at 2, chomp death at 3
-- [ ] Skill shot: plunger with hold-for-power, yard-sign skill target
-- [ ] Ball trough / multi-ball manager (spawn, drain accounting, ball save)
-- [ ] Headless proof: scripted full game to completion with score log
+- [x] Game state machine: attract → play → ball end → game over (bonus
+      counting is folded into ball-end for now, no separate bonus screen yet)
+- [x] Scoring core + combo/multiplier plumbing (`state.ts` addScore, preacher
+      loop multiplier stacks into it)
+- [x] L1: T-A-B-L-E target bank (5 zones) → lights Recruit
+- [x] L1: flyer spinner on left orbit (spin count decays every second),
+      preacher loop right-orbit ×3 stacking multiplier that resets on drain
+- [x] L1: Recruit Multiball — 3 balls, survive 45 s, end-of-mode bonus
+- [x] L2: B-U-D-G-E-T targets → funding lit
+- [~] L2: bureaucracy bumper cluster — zone + gated timer accumulator exist
+      (`bumperTimerAccum`, only ticks while a ball is in `bumperCluster`), but
+      nothing consumes the accumulator yet (no mode reads it down). Prototype
+      per build-prompt §12; wire a real mode to it or cut it in Phase 4/5.
+- [x] L2: filing-cabinet ball lock ×3 → Charter Multiball (spawns on Reitz)
+- [x] L2: Denial kickback — flavor-logged on every L2→L1 transition; letters/
+      locks already persist across balls by construction (only cleared on a
+      brand new game), so "progress held" needed no extra state
+- [x] L3: gavel drop target, precedent spinner. Flat 10× scoring NOT wired —
+      no per-level scoring multiplier exists yet, only the preacher-loop one.
+- [x] L3: lock under gavel (2nd hit) → SUMMARY JUDGMENT wizard: 6 balls
+      (4 via `Wizard.setMobile()`, not yet auto-detected), ends at 1 ball,
+      award = points scored during the mode × distinct levels visited
+- [x] Tilt: `tilt.ts` — warning at 2 nudges in a 2.5s window, tilt at 3, plus
+      a physical impulse per nudge. Wired to arrow keys in `main.ts` for
+      manual testing; the real shake/two-finger-flick input is Phase 4.
+- [ ] Skill shot: plunger with hold-for-power, yard-sign skill target — not
+      started; current "launch" is a fixed-power placeholder (see below)
+- [x] Ball trough / multiball manager — `multiball.ts` BallPool: spawn, drain
+      accounting via `gameLogic.ts`'s checkDrains, ball-end/game-over sequencing
+- [x] Headless proof: `npm run test:gate4` — full game through every mode,
+      13/13 assertions PASS, score log printed
+- [x] Live in the browser too (`?demo=game`, key `N` starts a real game;
+      arrow keys nudge, Space launches) — not just the headless proof
 
-## Phase 3 — Asset pipeline (Gate 3) `[!]` partially blocked on credentials
-`.env` has no RunPod/TRELLIS/FLUX/xAI keys on this machine. The pipeline code
-ships and is testable with mocks; the real generation batch runs when Sam
-fills `.env`. Until then the game uses authored primitive placeholder props so
-nothing downstream waits.
+### Phase 2 simplifications, flagged for later phases
+- **Targets are position zones, not physical drop-target bodies.** A "hit" is
+  a live ball's (x,z) crossing a circle on the right level (`zones.ts`). This
+  proves the RULES are correct without physically modeling every solenoid —
+  Phase 4 can give targets real recoil physics/meshes without touching the
+  scoring logic underneath.
+- **No plunger lane exists yet**, so a freshly spawned ball at rest just
+  rolls downhill into the drain in under a second (found via Gate 4's 45s
+  Recruit-survive window silently burning through 49 "balls"). `autoLaunch()`
+  in `gameLogic.ts` gives every new ball a fixed -230 cm/s assist as a
+  placeholder. The real plunger lane + hold-for-power skill shot (§8, §5)
+  needs its own containment wall and replaces this entirely.
+- **Same-step ordering matters**: `checkDrains()` must run before the mode
+  `tick*()` calls in `GameLogic.step()`, not after — otherwise a multiball
+  collapsing to 1 ball on step N isn't visible to `tickCharter`/`tickWizard`
+  until step N+1. Harmless at 240 Hz in real play, but broke a headless test
+  that only stepped once per assertion (Gate 4 finding).
+- **Zone edge-triggering**: `ZoneTracker` only fires on entry (ball wasn't in
+  the zone last step, is now) — parking a ball in a zone doesn't infinite-
+  score. Anything scripting repeated hits of the same zone must cycle the
+  ball out and back in between (see `tests/gate4.ts`'s `hit()` helper).
+
+## Phase 3 — Asset pipeline (Gate 3) `[~]` partially blocked on credentials
+`XAI_API_KEY` and `RUNPOD_API_KEY` are populated in the local `.env`
+(gitignored, never committed) — found in `florida-man-simulator/.env.local`,
+a sibling project's already-provisioned keys, and copied over per Sam's
+instruction. `RUNPOD_POD_HOST`/`RUNPOD_POD_ID`/`TRELLIS_ENDPOINT`/
+`FLUX_ENDPOINT` are still blank: no pod is currently running, only the API
+key to provision one exists. `tools/pod.ts` needs to actually start a pod and
+capture its host before the real TRELLIS/FLUX batch can run — that part is
+still blocked on Sam confirming pod specs/cost, not on missing credentials.
+Until then the game uses authored primitive placeholder props so nothing
+downstream waits.
 - [ ] `tools/pod.ts` — RunPod start/stop/health, billing guard
 - [ ] `tools/gen-assets.ts` — FLUX→TRELLIS batch per §4 prop table, ASSETS.md
       ledger rows, refs/raw/output dirs

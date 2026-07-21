@@ -1,11 +1,12 @@
 /**
- * Central game state. A zustand store so the Phase 4 HUD can subscribe
- * reactively, but the physics step (main.ts) reads/writes it directly via
+ * Central game state. A vanilla zustand store (no React dependency here) so
+ * it works in headless tests and the physics step alike via plain
  * getState()/setState() — no React round-trip on the hot path, matching the
  * "React never touches flipper state" rule from the build prompt (score and
  * mode state are UI-facing, not input-latency-critical, so this is fine).
+ * Phase 4's HUD wraps this with React's `useStore(gameStore, selector)`.
  */
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 
 export type Screen = 'attract' | 'menu' | 'options' | 'highScores' | 'play' | 'ballEnd' | 'gameOver'
 
@@ -109,7 +110,7 @@ const initialTransient = (): Pick<
   tiltWarnings: 0,
 })
 
-export const useGameStore = create<GameState & GameActions>((set, get) => ({
+export const useGameStore = createStore<GameState & GameActions>((set, get) => ({
   screen: 'attract',
   score: 0,
   ballNumber: 0,

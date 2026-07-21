@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:gate1": "tsx tests/gate1.ts",
     "test:gate2": "tsx tests/gate2.ts",
-    "test": "tsx tests/gate1.ts && tsx tests/gate2.ts"
+    "test": "tsx tests/gate1.ts && tsx tests/gate2.ts && tsx tests/gate4.ts",
+    "test:gate4": "tsx tests/gate4.ts"
   },
   "keywords": [],
   "author": "",
