@@ -191,13 +191,12 @@ function applyCameraSettings(): void {
 applyCameraSettings()
 settingsStore.subscribe(applyCameraSettings)
 
-function doLaunch(power: number): void {
+/** Fire the plunger. `power` (0-1) from the mobile pull-back gesture; the
+ * keyboard path passes undefined and uses the accumulated hold charge. */
+function doLaunch(power?: number): void {
   if (!playingRealGame) return
-  const primary = logic.pool.primary()
-  if (!primary) return
-  const v = primary.body.linvel()
-  if (Math.hypot(v.x, v.y, v.z) > 40) return
-  logic.relaunchPrimary(-350 - power * 350)
+  const speed = logic.launch(power)
+  if (speed == null) return // no ball was waiting in the lane
   play('launch')
   fireCallout('ballLaunch')
 }
@@ -214,6 +213,8 @@ installBridge({
 
 const uiRoot = createRoot(document.getElementById('ui-root')!)
 uiRoot.render(createElement(App, { onLaunch: doLaunch }))
+
+let prevLaunchHeld = false
 
 // Attract mode: 20s idle on the menu screen cycles to attract (§7).
 let idleTimer = 0
@@ -266,6 +267,14 @@ function step(dt: number): void {
       }
     }
   }
+
+  // Plunger: hold Space (input.launch) to charge, release to fire. Edge-
+  // detected here so the launch triggers exactly once on release.
+  if (playingRealGame && screen === 'play') {
+    logic.chargePlunger(dt, input.launch)
+    if (prevLaunchHeld && !input.launch) doLaunch()
+  }
+  prevLaunchHeld = input.launch
 
   for (const f of flippers.left) f.update(dt, input.left)
   for (const f of flippers.right) f.update(dt, input.right)
@@ -322,7 +331,7 @@ const stats = startLoop(step, (s) => {
   allFlippers.forEach((f, i) => (flipperMeshes[i].rotation.y = f.angle))
   const primaryPos = logic.pool.primary()?.body.translation() ?? { x: 0, y: 1.3, z: 20 }
   rig.update(primaryPos, frameDt)
-  cabinet.update(input.left, input.right, frameDt)
+  cabinet.update(input.left, input.right, useGameStore.getState().plungerCharge, frameDt)
   renderer.render(scene, rig.camera)
 
   if (showDebug) {
@@ -375,6 +384,7 @@ window.addEventListener('keydown', (e) => {
       }
       registerNudge(physicsTime)
     }
-    if (e.code === 'Space') doLaunch(1)
+    // Space is the plunger: charge-on-hold + release-on-keyup is handled in
+    // the physics step (edge-detected off input.launch), not here.
   }
 })

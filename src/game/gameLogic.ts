@@ -6,9 +6,10 @@
  */
 import { type Zone, ZoneTracker } from './zones'
 import { useGameStore, resetForNewBall } from './state'
-import { BallPool, relaunch } from './multiball'
+import { BallPool } from './multiball'
 import { levelOfY } from './levels'
 import { BALL_RADIUS } from './scale'
+import { serveToLane, chargePlunger, releasePlunger } from './plunger'
 import * as Recruit from './modes/recruitMultiball'
 import * as Charter from './modes/charterMultiball'
 import * as Wizard from './modes/summaryJudgment'
@@ -76,20 +77,29 @@ export class GameLogic {
   startNewGame(): void {
     useGameStore.getState().startGame()
     this.pool.reset(0, BALL_RADIUS, 20)
-    this.autoLaunch()
+    this.serve()
   }
 
   /**
-   * Placeholder auto-plunge: a real plunger lane (§8, hold-for-power skill
-   * shot) is Phase 4/5 work. Until that containment wall exists, a ball
-   * spawned at rest mid-field just rolls straight down the tilt into the
-   * drain in under a second (found via the Gate 4 proof's 46 s Recruit
-   * survive window, which otherwise burned through 49 "balls" this way).
-   * A soft assist velocity carries it clear of the drain onto the field.
+   * Serve a ball into the shooter lane, waiting for the plunger. Replaces the
+   * old mid-field auto-launch placeholder — the ball now starts where a real
+   * machine starts it, and the player pulls it into play.
    */
-  private autoLaunch(): void {
+  private serve(): void {
     const primary = this.pool.primary()
-    if (primary) primary.body.setLinvel({ x: 0, y: 0, z: -230 }, true)
+    if (primary) serveToLane(primary.body)
+  }
+
+  /** Advance the plunger charge (held = plunger pulled back). */
+  chargePlunger(dt: number, held: boolean): void {
+    chargePlunger(dt, held)
+  }
+
+  /** Fire the plunger. `power` (0-1) overrides charge for the touch gesture. */
+  launch(power?: number): number | null {
+    const primary = this.pool.primary()
+    if (!primary) return null
+    return releasePlunger(primary.body, power)
   }
 
   /** One physics step. Call after world.step(). */
@@ -220,7 +230,11 @@ export class GameLogic {
   private checkDrains(balls: { id: number; x: number; y: number; z: number }[]): void {
     for (const pb of [...this.pool.balls]) {
       const p = pb.body.translation()
-      const drained = p.z > 41 && p.y < 20 // past the Plaza drain wall, at field height
+      // Drain = past the Plaza drain wall at field height, but ONLY in the
+      // central/left drain area (x < 24). The shooter lane sits at x≈29.5 and
+      // its served ball rests at z≈42 — without the x guard, a ball waiting to
+      // be plunged would instantly read as drained.
+      const drained = p.z > 41 && p.y < 20 && p.x < 24
       if (!drained) continue
 
       this.emit('drain')
@@ -249,13 +263,7 @@ export class GameLogic {
     resetForNewBall()
     useGameStore.setState((st) => ({ ballNumber: st.ballNumber + 1, ballsInPlay: 1 }))
     this.pool.spawn(0, BALL_RADIUS, 20)
-    this.autoLaunch()
+    this.serve()
     useGameStore.getState().pushLog(`Ball ${useGameStore.getState().ballNumber}`)
-  }
-
-  /** Manual relaunch helper for tests/UI (plunger is Phase 4). */
-  relaunchPrimary(vz: number): void {
-    const primary = this.pool.primary()
-    if (primary) relaunch(primary, 0, BALL_RADIUS, 20, vz)
   }
 }

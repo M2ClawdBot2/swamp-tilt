@@ -26,6 +26,27 @@ export const PLAZA = {
   // the climb, exiting open-ended into the Reitz airspace. "Going up is
   // hard" — this rewards a genuinely full-power shot, not a glancing one.
   ramp: { cx: 12, z0: 6, y0: 0, z1: -38, y1: 44.5, width: 5 },
+  // Shooter lane: a real plunger channel OUTSIDE the right play wall (the
+  // right funnel/inlane already occupies the inside, so the lane can't share
+  // it — it lives in its own strip). Ball rests at the bottom against the
+  // drain-wall extension; the plunger shoves it up (-z); a top deflector
+  // turns it left through a gap in the play wall, into the upper-right
+  // playfield. This is the "feel real" fix — no more auto-launch from mid-field.
+  shooter: {
+    xInnerWall: 26.5, // shared with the right play wall (which gets a gap up top)
+    xOuterWall: 32,
+    bottomZ: 44,
+    topZ: 14, // where the outer wall meets the deflector
+    // Exit gap sits in the OPEN upper field (z 6..16): below the inner orbit
+    // rail's tail (which ends at z=4) and above the right funnel (which starts
+    // at z=16), so the deflected ball lands in clear playfield instead of the
+    // narrow orbit lane, where it just rattled across and bounced back into
+    // the shooter lane (Gate 7 finding).
+    exitZ0: 6,
+    exitZ1: 16,
+    serveX: 29.5, // lane centerline
+    serveZ: 42,
+  },
 } as const
 
 export function buildPlaza(): WallDesc[] {
@@ -35,7 +56,12 @@ export function buildPlaza(): WallDesc[] {
 
   // Perimeter: full height up to the lid so nothing escapes sideways
   walls.push(segment(-T.sideWallX, T.arcCenterZ, -T.sideWallX, T.drainZ, T.sideWallHalfT, tall))
-  walls.push(segment(T.sideWallX, T.arcCenterZ, T.sideWallX, T.drainZ, T.sideWallHalfT, tall))
+  // Right play wall is SPLIT by the shooter-lane exit gap (S.exitZ0..exitZ1):
+  // below the gap it's solid down to the drain; above the gap a short stub
+  // up to the arch springline.
+  const S = T.shooter
+  walls.push(segment(T.sideWallX, T.arcCenterZ, T.sideWallX, S.exitZ0, T.sideWallHalfT, tall))
+  walls.push(segment(T.sideWallX, S.exitZ1, T.sideWallX, T.drainZ, T.sideWallHalfT, tall))
   walls.push(...arc(0, T.arcCenterZ, T.outerArcR, Math.PI, 2 * Math.PI, 22, T.sideWallHalfT, tall))
   walls.push(segment(-T.sideWallX, T.drainZ, T.sideWallX, T.drainZ, T.sideWallHalfT, tall))
 
@@ -50,8 +76,23 @@ export function buildPlaza(): WallDesc[] {
   walls.push(segment(-T.funnel.xInner, T.funnel.zInner, -T.flipperPivotX - 0.6, T.flipperPivotZ - 0.6, 0.6))
   walls.push(segment(T.funnel.xInner, T.funnel.zInner, T.flipperPivotX + 0.6, T.flipperPivotZ - 0.6, 0.6))
 
-  // Floor
-  walls.push(slab(-29, 29, -54, 46, 0, 2, 'floor', 1))
+  // Floor (extended right to carry the shooter lane)
+  walls.push(slab(-29, 33, -54, 46, 0, 2, 'floor', 1))
+
+  // ---- Shooter lane ----
+  const laneTall = { h: T.lidY, level: 1 as const }
+  // Outer wall of the lane, from the bottom stop up to where it meets the
+  // deflector at the top.
+  walls.push(segment(S.xOuterWall, S.bottomZ, S.xOuterWall, S.topZ, T.sideWallHalfT, laneTall))
+  // Bottom stop (extends the drain wall across the lane so the served ball rests)
+  walls.push(segment(T.sideWallX, S.bottomZ, S.xOuterWall, S.bottomZ, T.sideWallHalfT, laneTall))
+  // Top deflector: a "/" (in x-right / z-down space) whose face turns the
+  // up-moving ball toward −x, out through the exit gap into the playfield.
+  // Its normal must point (−x, +z) to reflect −z motion into −x motion —
+  // the first attempt sloped the other way and kicked the ball into the
+  // outer wall (Gate 7 finding, traced per-step). Runs from the outer wall
+  // top down-left to the top lip of the exit gap.
+  walls.push(segment(S.xOuterWall, S.topZ, T.sideWallX - 1, S.exitZ0, T.sideWallHalfT, laneTall))
 
   // Ramp to The Reitz: single incline, open (no lid) so it can't trap a
   // slow ball against a ceiling — it just rolls back down instead.

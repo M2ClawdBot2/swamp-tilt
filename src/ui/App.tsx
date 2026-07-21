@@ -13,7 +13,7 @@ import { TouchControls } from './TouchControls'
 
 const isTouch = typeof window !== 'undefined' && 'ontouchstart' in window
 
-export function App({ onLaunch }: { onLaunch: (power: number) => void }): ReactElement | null {
+export function App({ onLaunch }: { onLaunch: (power?: number) => void }): ReactElement | null {
   const screen = useGame((s) => s.screen)
 
   switch (screen) {

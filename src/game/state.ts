@@ -37,6 +37,11 @@ export interface GameState {
   tilted: boolean
   tiltWarnings: number
 
+  // Plunger / shooter lane
+  ballInLane: boolean // a ball is sitting in the shooter lane, waiting to be launched
+  plungerCharge: number // 0-1, how far the plunger is pulled back right now
+  launched: boolean // has the current ball left the lane and entered play
+
   // L1 — Turlington Plaza
   tableLetters: boolean[] // T A B L E
   recruitLit: boolean
@@ -100,6 +105,9 @@ const initialTransient = (): Pick<
   | 'multiplier'
   | 'tilted'
   | 'tiltWarnings'
+  | 'ballInLane'
+  | 'plungerCharge'
+  | 'launched'
 > => ({
   tableLetters: [false, false, false, false, false],
   recruitLit: false,
@@ -121,6 +129,9 @@ const initialTransient = (): Pick<
   multiplier: 1,
   tilted: false,
   tiltWarnings: 0,
+  ballInLane: false,
+  plungerCharge: 0,
+  launched: false,
 })
 
 export const useGameStore = createStore<GameState & GameActions>((set, get) => ({

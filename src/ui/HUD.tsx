@@ -12,8 +12,11 @@ export function HUD(): ReactElement {
   const modeName = useGame((s) => s.activeModeName)
   const timers = useGame((s) => s.modeTimers)
   const tilted = useGame((s) => s.tilted)
+  const ballInLane = useGame((s) => s.ballInLane)
+  const plungerCharge = useGame((s) => s.plungerCharge)
 
   const timer = timers[0]
+  const isTouch = typeof window !== 'undefined' && 'ontouchstart' in window
 
   return (
     <>
@@ -27,6 +30,16 @@ export function HUD(): ReactElement {
         <div className="st-hud-mode">
           {tilted ? 'TILT' : modeName}
           {timer ? ` · ${Math.max(0, Math.ceil(timer.secondsLeft))}s` : ''}
+        </div>
+      )}
+      {ballInLane && (
+        <div className="st-plunger">
+          <div className="st-plunger-label">
+            {isTouch ? 'Pull back the plunger and release to launch' : 'Hold Space to charge · release to launch'}
+          </div>
+          <div className="st-plunger-meter">
+            <div className="st-plunger-fill" style={{ width: `${Math.round(plungerCharge * 100)}%` }} />
+          </div>
         </div>
       )}
     </>

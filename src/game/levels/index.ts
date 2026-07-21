@@ -12,12 +12,14 @@ export { PLAZA, REITZ, BENCH }
  */
 function buildShell(): WallDesc[] {
   const H = 110
+  // Asymmetric: the right wall sits at +33.5 to clear the shooter lane
+  // (outer lane wall is at x=32); the left stays tight at −28.2.
   const shell: WallDesc[] = [
     segment(-28.2, -53, -28.2, 46.2, 0.6, { h: H }),
-    segment(28.2, -53, 28.2, 46.2, 0.6, { h: H }),
-    segment(-28.2, 46.2, 28.2, 46.2, 0.6, { h: H }),
-    segment(-28.2, -53, 28.2, -53, 0.6, { h: H }),
-    slab(-29, 29, -54, 47, H + 1, 1, 'glass', 1),
+    segment(33.5, -53, 33.5, 46.2, 0.6, { h: H }),
+    segment(-28.2, 46.2, 33.5, 46.2, 0.6, { h: H }),
+    segment(-28.2, -53, 33.5, -53, 0.6, { h: H }),
+    slab(-29, 34, -54, 47, H + 1, 1, 'glass', 1),
   ]
   for (const s of shell) s.kind = 'glass' // never rendered
   return shell

@@ -11,7 +11,7 @@ import { input } from '../game/input'
 
 const PLUNGE_MAX_PULL = 120 // px of drag before "full power"
 
-export function TouchControls({ onLaunch }: { onLaunch: (power: number) => void }): ReactElement {
+export function TouchControls({ onLaunch }: { onLaunch: (power?: number) => void }): ReactElement {
   const pullStart = useRef<number | null>(null)
 
   return (

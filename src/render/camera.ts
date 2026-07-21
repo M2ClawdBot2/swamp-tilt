@@ -11,7 +11,9 @@ interface Framing {
 }
 
 const FRAMINGS: Record<1 | 2 | 3, Framing> = {
-  1: { pos: new THREE.Vector3(0, 78, 106), look: new THREE.Vector3(0, 0, -4) },
+  // L1 framing shifted slightly right + pulled back so the widened right side
+  // (the new shooter lane out to x=32) sits in frame, not cropped at the edge.
+  1: { pos: new THREE.Vector3(3, 84, 112), look: new THREE.Vector3(3, 0, -4) },
   2: { pos: new THREE.Vector3(0, 118, 64), look: new THREE.Vector3(0, 40, -16) },
   3: { pos: new THREE.Vector3(0, 150, 26), look: new THREE.Vector3(0, 80, -26) },
 }

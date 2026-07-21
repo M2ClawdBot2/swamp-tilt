@@ -9,11 +9,12 @@
     "preview": "vite preview",
     "test:gate1": "tsx tests/gate1.ts",
     "test:gate2": "tsx tests/gate2.ts",
-    "test": "tsx tests/gate1.ts && tsx tests/gate2.ts && tsx tests/gate3.ts && tsx tests/gate4.ts",
+    "test": "tsx tests/gate1.ts && tsx tests/gate2.ts && tsx tests/gate3.ts && tsx tests/gate4.ts && tsx tests/gate7.ts",
     "test:gate4": "tsx tests/gate4.ts",
     "test:gate3": "tsx tests/gate3.ts",
     "gen:sfx": "tsx tools/gen-sfx.ts",
-    "verify": "playwright test harness/verify.spec.ts"
+    "verify": "playwright test harness/verify.spec.ts",
+    "test:gate7": "tsx tests/gate7.ts"
   },
   "keywords": [],
   "author": "",
