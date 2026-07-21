@@ -17,7 +17,7 @@ import {
 import { createRenderer, createScene, buildTableMeshes, buildBallMesh, buildFlipperMesh, buildBackglass } from './render/scene'
 import { CameraRig } from './render/camera'
 import { buildCabinet } from './render/cabinet'
-import { buildPropPlaceholder } from './render/loadProps'
+import { buildProp } from './render/loadProps'
 import { GameLogic, type GameEvent } from './game/gameLogic'
 import { BallPool } from './game/multiball'
 import { useGameStore } from './game/state'
@@ -69,13 +69,13 @@ const cabinet = buildCabinet(scene)
 // Placeholder props (Phase 3): purely visual, parented at each level's
 // target-zone-ish locations. Swap to real GLBs once tools/gen-assets.ts has
 // run against a live pod — the authored colliders never move.
-const yardSign = buildPropPlaceholder('yard-sign')
+const yardSign = buildProp('yard-sign', 26)
 yardSign.position.set(-22.6, 0, 14)
 scene.add(yardSign)
-const filingCabinet = buildPropPlaceholder('filing-cabinet')
+const filingCabinet = buildProp('filing-cabinet', 12)
 filingCabinet.position.set(10, REITZ.y, -5)
 scene.add(filingCabinet)
-const gavel = buildPropPlaceholder('gavel')
+const gavel = buildProp('gavel', 12)
 gavel.position.set(-2, BENCH.y, -28)
 scene.add(gavel)
 

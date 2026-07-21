@@ -8,6 +8,7 @@
  * real one exists.
  */
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 export type PropName =
   | 'gavel'
@@ -158,4 +159,40 @@ const BUILDERS: Record<PropName, () => THREE.Group> = {
  */
 export function buildPropPlaceholder(name: PropName): THREE.Group {
   return BUILDERS[name]()
+}
+
+const gltfLoader = new GLTFLoader()
+
+/**
+ * Return a placeholder mesh immediately, and asynchronously try to load the
+ * real generated GLB (tools/gen-assets → TRELLIS). If it loads, swap the
+ * placeholder's children for the real model in place; if it 404s or errors
+ * (no GLB generated yet), the placeholder just stays. This is the "swap-in
+ * is a file drop" promise made real: drop `public/models/<name>.glb` and it
+ * appears, no code change.
+ */
+export function buildProp(name: PropName, sizeCm = 20): THREE.Group {
+  const group = buildPropPlaceholder(name)
+  const url = propModelPath(name, `${import.meta.env.BASE_URL}models`)
+  gltfLoader.load(
+    url,
+    (gltf) => {
+      const model = gltf.scene
+      // the post-processed GLB is centered and scaled to ~sizeCm on its
+      // longest axis; nudge to the requested size and drop it in
+      const box = new THREE.Box3().setFromObject(model)
+      const longest = Math.max(...box.getSize(new THREE.Vector3()).toArray(), 1e-3)
+      model.scale.multiplyScalar(sizeCm / longest)
+      model.traverse((o) => {
+        if (o instanceof THREE.Mesh) o.castShadow = true
+      })
+      group.clear()
+      group.add(model)
+    },
+    undefined,
+    () => {
+      /* no generated GLB yet — placeholder stays, no error surfaced to the player */
+    },
+  )
+  return group
 }

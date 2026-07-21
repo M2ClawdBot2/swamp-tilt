@@ -66,6 +66,7 @@ export async function postprocessGlb(
   outputPath: string,
   budgetTris: number,
   targetSizeCm = 20,
+  useDraco = true,
 ): Promise<PostprocessResult> {
   const io = new NodeIO()
     .registerExtensions([KHRDracoMeshCompression, KHRTextureBasisu])
@@ -93,7 +94,10 @@ export async function postprocessGlb(
 
   await doc.transform(prune())
   centerAndScale(doc, targetSizeCm)
-  await doc.transform(draco())
+  // Draco is optional: these game props are tiny (≤4k tris), so Draco saves
+  // little and would force a DRACOLoader + wasm decoder into the client. The
+  // game passes useDraco=false and loads plain GLBs with a bare GLTFLoader.
+  if (useDraco) await doc.transform(draco())
 
   await io.write(outputPath, doc)
 

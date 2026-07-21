@@ -111,7 +111,7 @@ async function generateOne(prop: PropSpec, index: number): Promise<void> {
 
   console.log(`[gen-assets] ${prop.name}: post-processing...`)
   const outPath = path.join(outDir, `${prop.name}.glb`)
-  const result = await postprocessGlb(rawPath, outPath, prop.budgetTris)
+  const result = await postprocessGlb(rawPath, outPath, prop.budgetTris, 20, false)
 
   await appendAssetRow({
     prop: prop.name,
