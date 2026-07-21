@@ -137,17 +137,41 @@ capture its host before the real TRELLIS/FLUX batch can run — that part is
 still blocked on Sam confirming pod specs/cost, not on missing credentials.
 Until then the game uses authored primitive placeholder props so nothing
 downstream waits.
-- [ ] `tools/pod.ts` — RunPod start/stop/health, billing guard
-- [ ] `tools/gen-assets.ts` — FLUX→TRELLIS batch per §4 prop table, ASSETS.md
-      ledger rows, refs/raw/output dirs
-- [ ] `tools/postprocess-glb.ts` — decimate to budget, Draco, atlas, center +
-      scale to SCALE.md, fail-loudly on budget overrun
-- [ ] Authored placeholder props for every §4 prop (boxes/lathes, correct
-      dims) wired through `loadProps.ts` so swap-in is a file drop
-- [ ] `tools/gen-callouts.ts` — Grok build-time script with human-review
-      print-out; committed `callouts.json` starts with hand-written lines
-- [!] Real TRELLIS batch + contact sheet — needs RunPod key from Sam
-- [!] Grok-generated callout variants — needs XAI key from Sam
+- [x] `tools/pod.ts` — RunPod GraphQL start/resume/stop/status + health
+      polling, `withPod()` wraps a batch in a guaranteed-stop `finally` so a
+      crash mid-run can't leave the GPU meter running overnight
+- [x] `tools/gen-assets.ts` — FLUX→TRELLIS batch per §4 prop table (10
+      props incl. authored-only ramp rails), ASSETS.md ledger row appended
+      per generated asset, refs/raw/output dirs auto-created
+- [x] `tools/postprocess-glb.ts` — iterative decimate-to-budget (a single
+      ratio pass under-shoots meshoptimizer's actual error-bounded result,
+      so it re-measures and tightens across up to 6 passes), Draco via
+      gltf-transform's `draco()` transform, center + scale to SCALE.md's
+      1-unit-=-1cm convention, fails loudly on budget overrun AND on
+      collapsing to a degenerate 0-tri mesh
+- [x] Authored placeholder props for every §4 prop wired through
+      `loadProps.ts` (`buildPropPlaceholder(name)`) — primitives at correct
+      real-world dimensions (e.g. filing cabinet 40×130×45cm), swap-in for
+      the real GLB is a one-line change once one exists (`propModelPath`
+      already points at where it'll live). Wired live into the Plaza/Reitz/
+      Bench scenes in `main.ts` (yard sign, filing cabinet, gavel) — renders
+      with no console errors.
+- [x] `tools/gen-callouts.ts` — Grok build-time script; writes a
+      `.draft.json`, prints every line to console for review, and only
+      writes to the real committed `callouts.json` via an explicit
+      `promote` command — never auto-approves generated copy. Committed
+      `callouts.json` ships with hand-written lines now (20 events).
+- [x] `npm run test:gate3` — proves the decimate/Draco/center-scale/budget-
+      enforcement pipeline end to end on a synthetic GLB (can't need a live
+      pod for this half), 5/5 PASS
+- [!] Real TRELLIS batch + contact sheet — code is ready and typechecked;
+      blocked on Sam provisioning/confirming a RunPod pod (cost decision,
+      not a missing-credential problem — the API key already works)
+- [!] Grok-generated callout variants — `XAI_API_KEY` IS present and the
+      script would run today; not run yet because the roadmap prioritized
+      proving the pipeline code over spending API budget on copy nobody's
+      reviewed the tone of yet. Run `tsx tools/gen-callouts.ts` then review
+      the draft before promoting.
 
 ## Phase 4 — Cabinet, UI, audio (Gate 5)
 - [ ] Full cabinet render: side rails, lockdown bar, plunger, backglass

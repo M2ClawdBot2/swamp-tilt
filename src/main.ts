@@ -15,6 +15,7 @@ import {
 import { createRenderer, createScene, buildTableMeshes, buildBallMesh, buildFlipperMesh } from './render/scene'
 import { CameraRig } from './render/camera'
 import { buildCabinet } from './render/cabinet'
+import { buildPropPlaceholder } from './render/loadProps'
 import { GameLogic } from './game/gameLogic'
 import { BallPool } from './game/multiball'
 import { useGameStore } from './game/state'
@@ -55,6 +56,19 @@ window.addEventListener('resize', () => {
 buildTableMeshes(scene, tableDescs)
 const flipperMeshes = allFlippers.map((f) => buildFlipperMesh(scene, f))
 const cabinet = buildCabinet(scene)
+
+// Placeholder props (Phase 3): purely visual, parented at each level's
+// target-zone-ish locations. Swap to real GLBs once tools/gen-assets.ts has
+// run against a live pod — the authored colliders never move.
+const yardSign = buildPropPlaceholder('yard-sign')
+yardSign.position.set(-22.6, 0, 14)
+scene.add(yardSign)
+const filingCabinet = buildPropPlaceholder('filing-cabinet')
+filingCabinet.position.set(10, REITZ.y, -5)
+scene.add(filingCabinet)
+const gavel = buildPropPlaceholder('gavel')
+gavel.position.set(-2, BENCH.y, -28)
+scene.add(gavel)
 
 const ballMeshes = new Map<number, THREE.Mesh>()
 function syncBallMeshes(): void {

@@ -1,0 +1,22 @@
+{
+  "ballLaunch": ["Ball's up.", "Here we go.", "Plunger's live."],
+  "tableLetterLit": ["Table.", "One more letter."],
+  "recruitLit": ["Recruit is lit.", "Table's set. Hit the loop."],
+  "recruitStart": ["Recruit multiball.", "Three balls. Go."],
+  "recruitSurvived": ["Recruit's in.", "They signed up."],
+  "budgetLetterLit": ["Budget.", "Line item approved."],
+  "fundingLit": ["Funding is lit.", "The budget balances."],
+  "filingLock": ["Filed.", "One in the cabinet."],
+  "charterStart": ["Charter multiball.", "The charter's live."],
+  "denialKickback": ["Denied.", "Kicked back downstairs.", "Try again from the top."],
+  "gavelHit": ["Order.", "Gavel down."],
+  "wizardLocked": ["Locked under the gavel.", "One shot from judgment."],
+  "wizardStart": ["Summary judgment.", "Every shot counts now."],
+  "wizardEnd": ["Judgment's in.", "Case closed."],
+  "tiltWarning": ["Careful.", "Easy on the machine."],
+  "tilt": ["Tilt.", "That's a chomp."],
+  "drain": ["Ball's in the swamp.", "Gone."],
+  "skillShot": ["Skill shot.", "Nice plant."],
+  "highScore": ["New high score.", "Top of the ballot."],
+  "gameOver": ["Game over.", "That's the session."]
+}
