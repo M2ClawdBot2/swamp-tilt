@@ -12,7 +12,8 @@
     "test": "tsx tests/gate1.ts && tsx tests/gate2.ts && tsx tests/gate3.ts && tsx tests/gate4.ts",
     "test:gate4": "tsx tests/gate4.ts",
     "test:gate3": "tsx tests/gate3.ts",
-    "gen:sfx": "tsx tools/gen-sfx.ts"
+    "gen:sfx": "tsx tools/gen-sfx.ts",
+    "verify": "playwright test harness/verify.spec.ts"
   },
   "keywords": [],
   "author": "",

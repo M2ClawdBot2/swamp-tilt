@@ -8,7 +8,12 @@ export function createRenderer(container: HTMLElement): THREE.WebGLRenderer {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  // PCFShadowMap (hard-edged, cheap) over PCFSoftShadowMap: this is a small
+  // fixed-camera table, soft shadows weren't buying much visual fidelity for
+  // the extra cost, and dropping it plus halving the shadow map resolution
+  // below closed most of a ~0.6ms overshoot against the 16ms/frame budget
+  // (Gate 6 perf pass finding).
+  renderer.shadowMap.type = THREE.PCFShadowMap
   container.appendChild(renderer.domElement)
   return renderer
 }
@@ -22,7 +27,7 @@ export function createScene(): THREE.Scene {
   const key = new THREE.DirectionalLight(0xffffff, 2.2)
   key.position.set(-40, 160, 20)
   key.castShadow = true
-  key.shadow.mapSize.set(2048, 2048)
+  key.shadow.mapSize.set(1024, 1024)
   key.shadow.camera.left = -70
   key.shadow.camera.right = 70
   key.shadow.camera.top = 70

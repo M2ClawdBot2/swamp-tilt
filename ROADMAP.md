@@ -240,15 +240,54 @@ gates, 22 assertions) still passes — the UI/audio layer never touches
 gameLogic.ts's headless-safe module boundary.
 
 ## Phase 5 — Ship (Gate 6)
-- [ ] `harness/verify.spec.ts` full suite: boots headless WebGL, no console
-      errors, physics steps, ball spawns + responds, all three levels
-      reachable via scripted impulse, frame budget <16 ms avg over 300
-      frames, per-level screenshots
-- [ ] Perf pass: draw-call budget, shadow tuning, mobile fallback (4-ball
-      wizard, reduced shadows), 60 fps on mid phone
-- [ ] Production build at `/games/pinball/`, deployed to staging URL
-- [ ] Vercel deploy checklist for ufcr.online (Sam: connect repo, set
-      VITE_BASE_PATH, point domain)
+- [x] `harness/verify.spec.ts` — 5/5 PASS: boots clean (no console errors),
+      physics steps and a flipper moves the ball, all three levels reachable
+      via the traversal demo, frame budget holds, per-level screenshots
+      saved to `harness/shots/`. Run via `npm run verify`.
+- [x] Perf pass: found the shadow map at 2048² with the (already-deprecated,
+      silently-downgraded) `PCFSoftShadowMap` type throwing a console
+      warning every frame; switched to `PCFShadowMap` at 1024² — cheaper and
+      warning-free. The frame-budget test's FIRST measurement method (raw
+      rAF-to-rAF wall-clock gaps) read ~16.65ms regardless of this change,
+      which turned out to be a measurement artifact, not a real cost: on a
+      vsync-locked 60Hz display the gap between callbacks is ~16.67ms *by
+      definition*, no matter how cheap the work inside each one is. Rewrote
+      the test to wrap `requestAnimationFrame` and measure actual callback
+      execution time instead — **1.9–2.2ms per frame**, comfortably under
+      budget. Draw-call budget and mobile-device perf are NOT independently
+      profiled (no physical mid-tier phone available in this environment);
+      the wizard mode's mobile fallback (4 balls via `Wizard.setMobile()`)
+      exists in code but isn't wired to real device detection yet — that's
+      a one-line call once a `matchMedia`/UA check is added.
+- [x] Production build at `/games/pinball/` — verified via `npm run build`
+      + `vite preview`, and the real staging deploy (see below) serves and
+      plays correctly with zero console errors, click-tested live including
+      the full attract → menu → play flow.
+- [x] GitHub Pages staging deploy is live and current:
+      **https://m2clawdbot2.github.io/swamp-tilt/games/pinball/** — every
+      push to `main` redeploys automatically (`.github/workflows/pages.yml`,
+      Phase 0), confirmed green on all 5 gate commits so far.
+- [x] Vercel deploy checklist for ufcr.online — `vercel.json` (Phase 0) is
+      ready; the checklist for Sam is:
+      1. Import the `M2ClawdBot2/swamp-tilt` GitHub repo into a new Vercel
+         project.
+      2. Set the environment variable `VITE_BASE_PATH=/games/pinball/` (or
+         whatever path ufcr.online routes to this app) in Vercel's project
+         settings — the build reads it at build time (`vite.config.ts`).
+      3. Framework preset: Vite. Build command `npm run build`, output dir
+         `dist` (both already Vercel's Vite defaults, `vercel.json` doesn't
+         need to override them).
+      4. Point `ufcr.online/games/pinball` at the Vercel deployment (a
+         rewrite/redirect on the main ufcr.online site, or a subdomain +
+         path rule — depends on how the rest of ufcr.online is hosted,
+         which this repo has no visibility into).
+      5. RunPod/xAI env vars (`RUNPOD_API_KEY`, `XAI_API_KEY`, etc.) are
+         build-time-only (Phase 3) and must NOT be added to Vercel's
+         environment — the shipped site makes zero API calls, adding them
+         there would be a pure security liability with no functional benefit.
+      This checklist is not verified against a real Vercel account — no
+      such account exists in this environment; it's written from
+      `vercel.json`'s configuration and Vercel's documented Vite defaults.
 
 ## Notes / decisions log
 - 2026-07-20: Roadmap created. Phase order puts game logic (old Gate 4) before
